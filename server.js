@@ -2,33 +2,32 @@
 const express = require('express');
 const { PeerServer } = require('peer');
 const path = require('path');
-const cors = require('cors'); // <--- ADD THIS LINE
+const cors = require('cors');
 
 const app = express();
 const port = process.env.PORT || 8000;
 
 // Configure CORS middleware to allow requests from your Static Site's origin
 const corsOptions = {
-    origin: 'https://vodafone-app-frontend.onrender.com', // <--- IMPORTANT: REPLACE WITH YOUR EXACT STATIC SITE URL
+    origin: 'https://vodafone-app-frontend.onrender.com', // Your Static Site URL
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // If you send cookies/auth headers
+    credentials: true,
     optionsSuccessStatus: 204
 };
-app.use(cors(corsOptions)); // <--- USE CORS MIDDLEWARE
+app.use(cors(corsOptions));
 
-// Serve static files from the current directory (where server.js is located)
-// Note: This 'express.static' is for the server itself, not the frontend.
-// The frontend is served by the Static Site service.
-app.use(express.static(path.join(__dirname)));
+// Removed this line: app.use(express.static(path.join(__dirname)));
+// Your Static Site (vodafone-app-frontend.onrender.com) is already serving your HTML/CSS/JS.
+// The Web Service only needs to focus on the PeerJS signaling.
 
 // 1. Start the Express web server FIRST and capture its instance
 const server = app.listen(port, () => {
-    console.log(`Express web server (for PeerJS and static files) listening on port ${port}`);
+    console.log(`Express web server (for PeerJS) listening on port ${port}`);
 });
 
 // 2. Create the PeerJS server, ATTACHING IT to the Express server instance
 const peerServer = PeerServer({
-    server: server, // <--- Attach PeerJS to the Express server
+    server: server,
     path: '/myapp', // This path still needs to match your client-side config
 });
 
