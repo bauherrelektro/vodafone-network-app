@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vodafone Network Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #e60000; /* Vodafone red */
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            margin-bottom: 25px;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #remoteVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ensure video fits within the container */
+            background-color: #000;
+        }
+
+        .status-message {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        #peer-id-display {
+            background-color: #eee;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            color: #333;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        #copyLinkButton {
+            background-color: #e60000; /* Vodafone red */
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 700;
+            transition: background-color 0.3s ease;
+        }
+
+        #copyLinkButton:hover {
+            background-color: #b30000;
+        }
+
+        .earnings-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 25px;
+            border: 1px solid #ddd;
+        }
+
+        .earnings-section h2 {
+            color: #000;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        #earnings {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #28a745; /* Green for earnings */
+        }
+
+        .instructions {
+            margin-top: 30px;
+            text-align: left;
+            padding: 0 20px;
+            color: #555;
+        }
+
+        .instructions h3 {
+            color: #e60000;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            list-style-type: decimal;
+            padding-left: 25px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .support-info {
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            .video-container {
+                padding-bottom: 75%; /* Adjust for mobile portrait if needed */
+            }
+            #earnings {
+                font-size: 2em;
+            }
+            .container {
+                padding: 20px;
+            }
+            #peer-id-display {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Vodafone Network</h1>
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+
+        <p class="status-message" id="statusMessage">Initializing PeerJS...</p>
+
+        <div id="peer-id-display">
+            <span>Share this link with your mobile device:</span>
+            <span id="shareLink">Generating link...</span>
+            <button id="copyLinkButton">Copy</button>
+        </div>
+
+        <p class="status-message">Waiting for mobile to connect... (Open the link on mobile and click "Play")</p>
+
+        <div class="earnings-section">
+            <h2>Your Earnings:</h2>
+            <div id="earnings">£0.00</div>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h3>How it Works:</h3>
+        <ol>
+            <li>This desktop screen will receive the live video stream from your mobile phone.</li>
+            <li>Copy the generated "Share this link" to your mobile device.</li>
+            <li>Open the link on your mobile phone's web browser (e.g., Chrome, Safari).</li>
+            <li>On your mobile, grant camera and microphone permissions when prompted.</li>
+            <li>Tap "Start Earning" on your mobile to begin streaming.</li>
+            <li>The video will appear here, and your earnings counter will start!</li>
+        </ol>
+    </div>
+
+    <div class="support-info">
+        <p>For support, please contact Vodafone Customer Service.</p>
+    </div>
+
+    <script>
+        const remoteVideo = document.getElementById('remoteVideo');
+        const statusMessage = document.getElementById('statusMessage');
+        const shareLinkSpan = document.getElementById('shareLink');
+        const copyLinkButton = document.getElementById('copyLinkButton');
+        const earningsDisplay = document.getElementById('earnings');
+
+        // --- PeerJS Configuration ---
+        const peerConfig = {
+            host: 'vodafone-peerjs-server.onrender.com', // <--- THIS IS YOUR RENDER PEERJS SERVER HOST
+            // port: 9000, // REMOVED: Render handles port 443 automatically
+            path: '/myapp',
+            secure: true, // Use WSS (HTTPS)
+            debug: 2 // 0: none, 1: errors, 2: warnings, 3: all
+        };
+
+        let peer = null;
+        let conn = null;
+        let earnings = 0;
+        let earningsInterval = null;
+
+        // --- Mobile Sender URL (crucial for sharing) ---
+        // This should point to your Render Static Site URL for the mobile page
+        const mobileSenderUrl = `https://YOUR-STATIC-SITE-NAME.onrender.com/Vodafone_Network.html`; // <--- REPLACE THIS WITH YOUR RENDER STATIC SITE URL
+
+        function initializePeer() {
+            if (peer && !peer.destroyed) {
+                peer.destroy();
+            }
+            peer = new Peer(peerConfig);
+
+            peer.on('open', (id) => {
+                statusMessage.textContent = `PeerJS initialized. Your ID: ${id}`;
+                const fullShareLink = `${mobileSenderUrl}?peerId=${id}`;
+                shareLinkSpan.textContent = fullShareLink;
+                console.log('Desktop Peer ID:', id);
+            });
+
+            peer.on('call', (call) => {
+                statusMessage.textContent = 'Receiving stream from mobile...';
+                // Answer the call, and pass it the video stream
+                call.answer(); // No local stream to send back
+                call.on('stream', (remoteStream) => {
+                    console.log('Received remote stream.');
+                    remoteVideo.srcObject = remoteStream;
+                    startEarningsCounter();
+                });
+                call.on('close', () => {
+                    console.log('Call ended.');
+                    statusMessage.textContent = 'Mobile disconnected. Waiting for new connection...';
+                    stopEarningsCounter();
+                    remoteVideo.srcObject = null;
+                    peer.reconnect(); // Attempt to reconnect PeerJS
+                });
+                call.on('error', (err) => {
+                    console.error('Call error:', err);
+                    statusMessage.textContent = `Call error: ${err.message}. Waiting for new connection...`;
+                    stopEarningsCounter();
+                    remoteVideo.srcObject = null;
+                    peer.reconnect();
+                });
+            });
+
+            peer.on('connection', (connection) => {
+                conn = connection; // Store the data connection
+                conn.on('open', () => {
+                    statusMessage.textContent = 'Mobile data channel connected.';
+                    // You can send data here if needed, e.g., conn.send('Hello from desktop!');
+                });
+                conn.on('close', () => {
+                    console.log('Mobile data channel disconnected.');
+                    statusMessage.textContent = 'Mobile disconnected. Waiting for new connection...';
+                    stopEarningsCounter();
+                    remoteVideo.srcObject = null;
+                    peer.reconnect();
+                });
+                conn.on('error', (err) => {
+                    console.error('Data connection error:', err);
+                });
+            });
+
+            peer.on('disconnected', () => {
+                console.warn('PeerJS disconnected from server. Attempting to reconnect...');
+                statusMessage.textContent = 'Disconnected from server. Reconnecting...';
+                stopEarningsCounter();
+                remoteVideo.srcObject = null;
+                setTimeout(() => peer.reconnect(), 5000); // Attempt to reconnect after 5 seconds
+            });
+
+            peer.on('error', (err) => {
+                console.error('PeerJS error:', err);
+                statusMessage.textContent = `Error: ${err.message}. Please refresh the page.`;
+                stopEarningsCounter();
+                if (!peer.destroyed) {
+                    peer.destroy(); // Destroy to prevent multiple error events
+                }
+            });
+        }
+
+        function startEarningsCounter() {
+            if (earningsInterval) return; // Prevent multiple intervals
+            earningsInterval = setInterval(() => {
+                earnings += 0.01; // Increase by £0.01 every second
+                earningsDisplay.textContent = `£${earnings.toFixed(2)}`;
+            }, 1000); // Every 1 second
+        }
+
+        function stopEarningsCounter() {
+            if (earningsInterval) {
+                clearInterval(earningsInterval);
+                earningsInterval = null;
+            }
+        }
+
+        copyLinkButton.addEventListener('click', () => {
+            const linkToCopy = shareLinkSpan.textContent;
+            navigator.clipboard.writeText(linkToCopy).then(() => {
+                alert('Share link copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy link: ', err);
+            });
+        });
+
+        // Initialize PeerJS when the page loads
+        document.addEventListener('DOMContentLoaded', initializePeer);
+    </script>
+</body>
+</html>
