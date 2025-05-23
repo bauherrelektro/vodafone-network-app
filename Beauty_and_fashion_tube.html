@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beauty and fashion tube Viewer</title>
+    <style>
+        /* Tailwind CSS CDN for styling */
+        @import url('https://cdn.tailwindcss.com');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #000; /* Dark background for full screen effect */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Hide scrollbars */
+        }
+
+        .main-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh; /* Take full viewport height */
+            padding: 20px; /* Add some padding around the content */
+            box-sizing: border-box;
+        }
+
+        .share-info-panel {
+            background-color: #f0f4f8; /* Light background for info */
+            padding: 8px; /* Reduced padding */
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            font-size: 1em;
+            color: #4a5568;
+            word-break: break-all; /* Break long words to prevent overflow */
+            text-align: center; /* Center align text */
+            margin-bottom: 10px; /* Reduced margin-bottom */
+            width: 100%;
+            max-width: 960px; /* Match video container max-width if applicable */
+        }
+
+        /* Video player container (the "box") */
+        .video-container {
+            position: relative;
+            width: 90vw; /* Increased width */
+            max-width: 1000px; /* Increased max width for the box */
+            height: 80vh; /* Increased height */
+            max-height: 800px; /* Increased max height for the box */
+            background-color: #1a202c; /* Dark background for the player area */
+            border-radius: 12px; /* Rounded corners for the box */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Deeper shadow for the box */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* Ensure video fits within bounds */
+            padding: 15px; /* Padding inside the box around the video */
+            box-sizing: border-box; /* Include padding in width/height */
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ensure video fits within the padded box */
+            background-color: #000; /* Black background for the video itself */
+            border-radius: 8px; /* Slightly smaller rounded corners for the video */
+        }
+
+        /* Status indicator styles */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center the status indicator */
+            gap: 8px;
+            font-weight: 500;
+            margin-bottom: 5px; /* Reduced margin-bottom */
+            font-size: 0.85em; /* Smaller status text */
+        }
+        .status-dot {
+            width: 10px; /* Smaller dot */
+            height: 10px; /* Smaller dot */
+            border-radius: 50%;
+            background-color: gray; /* Default */
+        }
+        .status-dot.connected {
+            background-color: #22c55e; /* green-500 */
+        }
+        .status-dot.disconnected {
+            background-color: #ef4444; /* red-500 */
+        }
+        .status-dot.connecting {
+            background-color: #f59e0b; /* amber-500 */
+        }
+
+        .share-link-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px; /* Reduced margin-top */
+        }
+
+        .share-link-display a {
+            color: #3182ce; /* Link color */
+            text-decoration: underline;
+            font-size: 0.8em; /* Even smaller link font size */
+            word-break: break-all;
+        }
+
+        .share-link-display button {
+            background-color: #4CAF50; /* Green for copy button */
+            color: white;
+            padding: 6px 12px; /* Smaller button padding */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 0.8em; /* Smaller button font size */
+        }
+
+        .share-link-display button:hover {
+            background-color: #45a049;
+        }
+
+        .share-info-panel p {
+            font-size: 0.8em; /* Smaller paragraph text */
+            margin-bottom: 3px; /* Adjusted margin */
+            line-height: 1.3; /* Adjusted line spacing */
+        }
+
+        .share-info-panel h2 {
+            font-size: 1.1em; /* Smaller heading */
+            margin-bottom: 3px; /* Adjusted margin */
+        }
+    </style>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <div class="main-content-wrapper">
+        <div class="share-info-panel">
+            <h2 class="text-lg font-semibold text-purple-800 mb-2">Your Share Link</h2>
+            <div id="loadingMessage" class="status-indicator">
+                <span id="statusDot" class="status-dot connecting"></span>
+                <span id="statusText">Initializing PeerJS...</span>
+            </div>
+            <div id="shareLinkContainer" class="hidden">
+                <p class="text-sm text-gray-700 mb-2">Share this link with your mobile device:</p>
+                <div class="share-link-display">
+                    <a id="shareLink" href="#" target="_blank">Generating link...</a>
+                    <button onclick="copyToClipboard('shareLink')">Copy</button>
+                </div>
+                <p class="text-sm text-gray-700 mt-2">
+                    Waiting for mobile to connect... (Open the link on mobile and click "Play")
+                </p>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
+
+    <script>
+        let peer; // PeerJS instance
+        let currentCall; // To hold the active call object
+        const remoteVideo = document.getElementById('remoteVideo');
+        const shareLinkContainer = document.getElementById('shareLinkContainer');
+        const shareLinkElement = document.getElementById('shareLink');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        // Configuration for PeerJS connection to your signaling server
+        const peerConfig = {
+            host: '192.168.113.70', // Explicitly set host for desktop viewer
+            port: 9000, // PeerJS server port (must match server.js)
+            path: '/myapp', // PeerJS server path (must match server.js)
+            secure: true, // Now connecting over WSS (HTTPS)
+            debug: 2 // 0: none, 1: errors, 2: warnings, 3: all
+        };
+
+        // Define a static Peer ID for the desktop viewer
+        const STATIC_DESKTOP_PEER_ID = 'desk-view'; 
+
+        /**
+         * Updates the connection status indicator.
+         * @param {string} status - 'connecting', 'connected', 'disconnected', 'error'
+         * @param {string} message - The message to display
+         */
+        function updateConnectionStatus(status, message) {
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = message;
+            console.log(`PeerJS Status: ${message}`);
+        }
+
+        /**
+         * Initializes PeerJS and sets up listeners for incoming calls.
+         */
+        function initializePeer() {
+            updateConnectionStatus('connecting', 'Initializing PeerJS...');
+            // Use the static Peer ID
+            console.log(`Attempting to connect to PeerJS server at ${peerConfig.secure ? 'wss' : 'ws'}://${peerConfig.host}:${peerConfig.port}${peerConfig.path} with ID: ${STATIC_DESKTOP_PEER_ID}`);
+            peer = new Peer(STATIC_DESKTOP_PEER_ID, peerConfig);
+
+            peer.on('open', (id) => {
+                updateConnectionStatus('connected', `Connected to server. My ID: ${id}`);
+                loadingMessage.style.display = 'none'; // Hide loading message
+                shareLinkContainer.classList.remove('hidden'); // Show the link container
+                console.log("Share link container should now be visible."); // Added log
+                // Construct the mobile sender URL using the peerConfig.host and explicit port 8000
+                const mobileSenderUrl = `https://${peerConfig.host}:8000/Vodafone_Network.html`; // Uses updated peerConfig.host
+                // Use the static Peer ID in the generated link
+                shareLinkElement.href = `${mobileSenderUrl}?peerId=${STATIC_DESKTOP_PEER_ID}`; // Set href
+                shareLinkElement.textContent = `${mobileSenderUrl}?peerId=${STATIC_DESKTOP_PEER_ID}`; // Set text content
+            });
+
+            peer.on('call', (call) => {
+                console.log('Incoming call from:', call.peer);
+                currentCall = call;
+
+                call.answer();
+
+                call.on('stream', (remoteStream) => {
+                    console.log('Remote stream received from mobile!');
+                    remoteVideo.srcObject = remoteStream;
+                    remoteVideo.play().catch(e => {
+                        console.error("Error playing remote video:", e);
+                        showCustomAlert("Could not play incoming stream. Autoplay blocked or error: " + e.message);
+                    });
+                });
+
+                call.on('close', () => {
+                    console.log('Call ended by remote peer.');
+                    remoteVideo.srcObject = null;
+                });
+
+                call.on('error', (err) => {
+                    console.error('Call error:', err);
+                    showCustomAlert('Call error: ' + err.message);
+                });
+            });
+
+            peer.on('error', (err) => {
+                console.error('PeerJS error:', err);
+                let errorMessage = 'Error initializing PeerJS: ' + err.message;
+                if (err.type === 'network') {
+                    errorMessage = `Network Error: Could not connect to PeerJS server at ${peerConfig.secure ? 'wss' : 'ws'}://${peerConfig.host}:${peerConfig.port}${peerConfig.path}. Please ensure: \n\n1. The Node.js server is RUNNING (\`node server.js\`) in your terminal. \n2. The \`host\` in \`peerConfig\` (in this code) is set to your desktop's CORRECT IP address if connecting from another device (e.g., your phone). \n3. No firewalls are BLOCKING port 9000 on your desktop. \n4. If this page is loaded over HTTPS, your PeerJS server MUST be configured for SSL/TLS (HTTPS). Otherwise, load this page over HTTP.`;
+                } else if (err.type === 'peer-unavailable') {
+                    errorMessage = 'Peer unavailable. The mobile device might not have connected yet or its PeerJS ID is incorrect.';
+                } else {
+                    errorMessage = 'PeerJS initialization failed.';
+                }
+                showCustomAlert(errorMessage);
+            });
+
+            peer.on('disconnected', () => {
+                console.log('PeerJS disconnected from server. Attempting to reconnect...');
+                if (peer && !peer.destroyed) {
+                    peer.reconnect();
+                }
+            });
+
+            peer.on('close', () => {
+                console.log('PeerJS connection closed.');
+            });
+        }
+
+        /**
+         * Copies text from a specified element to the clipboard.
+         * @param {string} elementId - The ID of the element whose text content should be copied.
+         */
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            if (element && element.textContent) {
+                const textToCopy = element.textContent;
+                // Create a temporary textarea to hold the text for copying
+                const tempTextarea = document.createElement('textarea');
+                tempTextarea.value = textToCopy;
+                document.body.appendChild(tempTextarea);
+                tempTextarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextarea);
+                showCustomAlert("Copied to clipboard!");
+            } else {
+                showCustomAlert("Nothing to copy.");
+            }
+        }
+
+        /**
+         * Displays a custom alert message to the user.
+         * This replaces the native `alert()` function for better UI control.
+         * @param {string} message - The message to display in the alert.
+         */
+        function showCustomAlert(message) {
+            let alertBox = document.getElementById('customAlertBox');
+            if (!alertBox) {
+                alertBox = document.createElement('div');
+                alertBox.id = 'customAlertBox';
+                alertBox.className = `
+                    fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+                    bg-white p-8 rounded-lg shadow-2xl z-50 text-center
+                    max-w-sm font-inter text-gray-800 border border-gray-200
+                `;
+                const messageParagraph = document.createElement('p');
+                messageParagraph.textContent = message;
+                messageParagraph.className = 'mb-6 text-lg';
+
+                const closeButton = document.createElement('button');
+                closeButton.textContent = 'OK';
+                closeButton.className = `
+                    px-6 py-2 bg-blue-600 text-white rounded-md
+                    hover:bg-blue-700 transition duration-300 ease-in-out
+                `;
+                closeButton.onclick = () => alertBox.remove();
+
+                alertBox.appendChild(messageParagraph);
+                alertBox.appendChild(closeButton);
+                document.body.appendChild(alertBox);
+            } else {
+                // If exists, just update its message
+                alertBox.querySelector('p').textContent = message;
+            }
+        }
+
+        // Initialize PeerJS when the page loads
+        window.onload = initializePeer;
+    </script>
+</body>
+</html>

