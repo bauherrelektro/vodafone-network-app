@@ -12,6 +12,6 @@
   "dependencies": {
     "express": "^4.18.2",
     "peer": "^1.0.1",
-    "cors": "^2.8.5"  <-- ADD THIS LINE
+    "cors": "^2.8.5"
   }
 }
