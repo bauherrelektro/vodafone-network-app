@@ -1,0 +1,13 @@
+{
+  "name": "vodafone-network-server",
+  "version": "1.0.0",
+  "description": "PeerJS signaling server for Vodafone Network app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",  // Or whatever version you are using
+    "peer": "^1.5.2"       // Or whatever version you are using
+  }
+}
